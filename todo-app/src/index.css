@@ -1,0 +1,95 @@
+body {
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  align-items: center;
+  font-family: 'poppins';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #987eff;
+
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+.container {
+  display: flex;
+  background-color: white;
+  border: 4px solid #f9f8fd;
+  border-radius: 20px;
+  margin-top: 10%;
+  margin-bottom: 10%;
+  padding: 0;
+  margin-left: 10%;
+  margin-right: 10%;
+  
+
+}
+
+.sections {
+  flex: 1;
+  border-radius: 20px;
+
+  padding: 2%;
+}
+
+.sections h2 {
+  margin-bottom: 10px;
+}
+
+.sections ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.sections li {
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 5px;
+  margin-bottom: 5px;
+}
+
+.sections li.active {
+  background-color: #f0f0f0;
+}
+
+.todos {
+  border-radius: 20px;
+  border-top-left-radius: 0px;
+  border-bottom-left-radius: 0px;
+  flex: 2;
+  margin-left: 20px;
+  padding: 2%;
+  background-color: #a18aff;
+}
+
+.todos h2 {
+  margin-bottom: 10px;
+}
+
+.todos ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.todos li {
+  margin-bottom: 5px;
+}
+
+.todos input {
+  margin-right: 10px;
+}
+
+.todos button {
+  margin-left: 10px;
+}
+
+input{
+  background-color: #f9f8fd;
+  border: #f9f8fd 1px solid;
+  border-radius: 20px;
+
+}
