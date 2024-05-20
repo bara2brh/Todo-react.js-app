@@ -93,3 +93,8 @@ input{
   border-radius: 20px;
 
 }
+
+.dark-mode {
+  background-color: #333;
+  color: #fff;
+}
