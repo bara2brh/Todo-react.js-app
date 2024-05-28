@@ -15,16 +15,21 @@ Fixes:
      * styling whole project
      * 
      */
-    import React, { useState } from 'react';
+import React, { useState ,useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import LocalizedStrings from 'react-localization';
 import Popup from './Popup.js';
 import Strings from '../locale/langs.js'
+import { useAuth } from '../AuthProvider.js';
+import { AuthProvider } from '../AuthProvider';
+import { db, doc, setDoc ,getDocs,updateDoc , deleteDoc ,addDoc,collection } from '../firebase';
+
 
 const TodoList = () => {
     // State hooks
+    const { currentUser } = useAuth();
     const storedSections = JSON.parse(localStorage.getItem('sections'))
-    const [sections, setSections] = useState(storedSections??[]);
+    const [sections, setSections] = useState([]);
     const [sectionInput, setSectionInput] = useState('');
     const [todoInput, setTodoInput] = useState('');
     const [timeInput, setTimeInput] = useState('');
@@ -42,7 +47,33 @@ const TodoList = () => {
     const [editSectionIndex, seteditSectionIndex] = useState(0);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [language, setLanguage] = useState('');
+    const getUid = localStorage.getItem('uid');
 
+    useEffect(() => {
+        const fetchSectionsAndTodos = async () => {
+            if (currentUser && getUid) {
+                const userDocRef = doc(db, 'users', getUid);
+                const sectionsSubcollectionRef = collection(userDocRef, 'sections');
+                const sectionsSnapshot = await getDocs(sectionsSubcollectionRef);
+                const sectionsData = await Promise.all(sectionsSnapshot.docs.map(async (sectionDoc) => {
+                    const sectionData = { id: sectionDoc.id, ...sectionDoc.data() };
+                    const todosSubcollectionRef = collection(sectionDoc.ref, 'todos');
+                    const todosSnapshot = await getDocs(todosSubcollectionRef);
+                    const todos = todosSnapshot.docs.map(todoDoc => ({
+                        id: todoDoc.id,
+                        ...todoDoc.data()
+                    }));
+                    return { ...sectionData, todos };
+                }));
+                setSections(sectionsData);
+            } else {
+                setSections(storedSections ?? []);
+            }
+        };
+    
+        fetchSectionsAndTodos();
+    }, [currentUser, getUid]);
+    
     // Utility functions for time format conversion
     const convertTo12HourFormat = (time) => {
         const [hours, minutes] = time.split(':');
@@ -91,16 +122,43 @@ const TodoList = () => {
     };
 
     // Add, edit, delete section handlers
-    const handleAddSection = () => {
-        if (sections.length === 0) setSelectedSection(0);
-        if (sectionInput.trim() !== '') {
-            const newSections = [...sections, { title: sectionInput, todos: [] }];
-            setSections(newSections);
-            setSectionInput('');
-            localStorage.setItem('sections', JSON.stringify(newSections));
-        }
-        
+    const handleAddSection = async () =>  {
+        if (!currentUser)
+            {
+                if (sections.length === 0) setSelectedSection(0);
+                if (sectionInput.trim() !== '') {
+                    const newSections = [...sections, { title: sectionInput, todos: [] }];
+                    setSections(newSections);
+                    setSectionInput('');
+                    localStorage.setItem('sections', JSON.stringify(newSections));
+                }        
+            }
+            else {
+                try {
+                    const userDocRef = doc(db, 'users', getUid);
+                    const sectionsSubcollectionRef = collection(userDocRef, 'sections');
+                    const sectionData = {
+                      title: sectionInput,
+                      todos:{},
+                    };
+                    const sectionDocRef = doc(sectionsSubcollectionRef); 
+                    await setDoc(sectionDocRef, sectionData);
+                    console.log('Section successfully added!');
+                    const sectionsSnapshot = await getDocs(sectionsSubcollectionRef)
+                    const sections = sectionsSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                    }));
+                    setSections(sections);
+                    setSectionInput('');
 
+                  } catch (error) {
+                    console.error('Error adding section: ', error);
+                  }
+
+
+            }
+       
     };
 
     const handleEditSection = (sectionIndex) => {
@@ -109,12 +167,26 @@ const TodoList = () => {
         seteditSectionInput (sections[sectionIndex]?.title || '');
     };
 
-    const handleEditSectionSubmit = (sectionIndex, text) => {
+    const handleEditSectionSubmit = async (sectionIndex, text) => {
         const updatedSections = [...sections];
-        updatedSections[sectionIndex] = { ...updatedSections[sectionIndex], title: text };
-        setSections(updatedSections);
-        localStorage.setItem('sections', JSON.stringify(updatedSections));
+
+        if (!currentUser) {
+            updatedSections[sectionIndex] = { ...updatedSections[sectionIndex], title: text };
+            setSections(updatedSections);
+            localStorage.setItem('sections', JSON.stringify(updatedSections));
+        } else {
+            const sectionId = updatedSections[sectionIndex].id;
+            const sectionDocRef = doc(db, 'users', getUid, 'sections', sectionId);
+            await updateDoc(sectionDocRef, {
+                title: text,
+            });
+
+            updatedSections[sectionIndex] = { ...updatedSections[sectionIndex], title: text };
+            setSections(updatedSections);
+        }
+
         togglePopupSectionEdit();
+    
     };
 
     const handleDeleteSection = (sectionIndex) => {
@@ -123,20 +195,49 @@ const TodoList = () => {
     };
 
     // Add, edit, delete todo handlers
-    const handleAddTodo = (sectionIndex) => {
+    const handleAddTodo = async (sectionIndex) => {
         if (todoInput.trim() !== '' && timeInput.trim() !== '') {
             const updatedSections = [...sections];
-            updatedSections[sectionIndex]?.todos.push({
-                text: todoInput,
-                time: convertTo12HourFormat(timeInput),
-                priority: priorityInput,
-                status: 'incomplete',
-            });
-            setSections(updatedSections);
-            localStorage.setItem('sections', JSON.stringify(updatedSections));
-
-            setTodoInput('');
-            setTimeInput('');
+    
+            if (!currentUser) {
+                updatedSections[sectionIndex]?.todos.push({
+                    text: todoInput,
+                    time: convertTo12HourFormat(timeInput),
+                    priority: priorityInput,
+                    status: 'incomplete',
+                });
+                setSections(updatedSections);
+                localStorage.setItem('sections', JSON.stringify(updatedSections));
+    
+                setTodoInput('');
+                setTimeInput('');
+            } else {
+                const sectionId = updatedSections[sectionIndex].id;
+                const sectionDocRef = doc(db, 'users', getUid, 'sections', sectionId);
+                const todosSubcollectionRef = collection(sectionDocRef, 'todos');
+                const todo = { 
+                    text: todoInput,
+                    time: convertTo12HourFormat(timeInput),
+                    priority: priorityInput,
+                    status: 'incomplete',
+                };
+    
+                // Add the new todo to Firestore
+                await addDoc(todosSubcollectionRef, todo);
+    
+                // Fetch the updated sections
+                const sectionsSnapshot = await getDocs(collection(sectionDocRef, 'todos'));
+                const todos = sectionsSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+    
+                updatedSections[sectionIndex].todos = todos;
+    
+                setSections(updatedSections);
+                setTodoInput('');
+                setTimeInput('');
+            }
         }
     };
 
@@ -170,21 +271,52 @@ const TodoList = () => {
         }
     };
 
-    const handleDeleteConfirmation = () => {
+    const handleDeleteConfirmation = async () => {
         if (deleteTarget.type === 'section') {
-            const { sectionIndex } = deleteTarget;
+         if (!currentUser)
+         {
+             const { sectionIndex } = deleteTarget;
             const updatedSections = [...sections];
             updatedSections.splice(sectionIndex, 1);
             setSections(updatedSections);
             localStorage.setItem('sections', JSON.stringify(updatedSections));
-
+         }
+         else {
+            const { sectionIndex } = deleteTarget;
+            const curSections = [...sections];
+            const sectionId = curSections[sectionIndex].id;
+            const sectionDocRef = doc(db, 'users', getUid, 'sections', sectionId); 
+            await deleteDoc(sectionDocRef);
+            const updatedSections = sections.filter(section => section.id !== sectionId);
+             setSections(updatedSections);
+         }
         }
         if (deleteTarget.type === 'todo') {
-            const { sectionIndex, todoIndex } = deleteTarget;
-            const updatedSections = [...sections];
-            updatedSections[sectionIndex]?.todos.splice(todoIndex, 1);
-            setSections(updatedSections);
-            localStorage.setItem('sections', JSON.stringify(updatedSections));
+            if (!currentUser)
+             {
+                const { sectionIndex, todoIndex } = deleteTarget;
+                const updatedSections = [...sections];
+                updatedSections[sectionIndex]?.todos.splice(todoIndex, 1);
+                setSections(updatedSections);
+                localStorage.setItem('sections', JSON.stringify(updatedSections));
+             }
+            else
+            {
+                const { sectionIndex, todoIndex } = deleteTarget;
+                const curSections = [...sections];
+                const sectionId = curSections[sectionIndex].id;
+                const todoId = curSections[sectionIndex].todos[todoIndex].id;
+                const todoDocRef = doc(db, 'users', getUid, 'sections', sectionId,'todos',todoId); 
+                await deleteDoc(todoDocRef);
+                const sectionDocRef = doc(db, 'users', getUid, 'sections', sectionId); 
+                const sectionsSnapshot = await getDocs(collection(sectionDocRef, 'todos'));
+                const todos = sectionsSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                curSections[sectionIndex].todos = todos;
+                setSections(curSections);
+            }
 
         }
         setResureIsOpen(false);
@@ -226,7 +358,7 @@ const TodoList = () => {
     // Change Language 
     const changeLanguge= ()=>{
       const currentLanguage = Strings.getLanguage();
-      Strings.setLanguage(currentLanguage=='ar'?"en":'ar');
+      Strings.setLanguage(currentLanguage==='ar'?"en":'ar');
       setLanguage(currentLanguage);
     }
         return (
@@ -317,6 +449,7 @@ const TodoList = () => {
                             {sections.length === 0 && <h2>{Strings.selectSection}</h2>}
                         </div>
                     </div>
+                    
                 </DragDropContext>
                 <Popup isOpen={isOpen} togglePopup={togglePopup}>
                     <input
