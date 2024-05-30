@@ -20,7 +20,8 @@ const SignIn = () => {
       };
       
       localStorage.setItem('uid', user.uid);
-      
+      localStorage.removeItem('guestMode');
+      localStorage.setItem('uid', user.uid);
 
       await setDoc(doc(db, 'users', user.uid), userData);
 
@@ -33,6 +34,8 @@ const SignIn = () => {
   const handleSignOut = async () => {
     try {
       await signOut(auth);
+      localStorage.setItem('guestMode', JSON.stringify(true));
+
     } catch (error) {
       console.error("Error signing out:", error);
     }

@@ -8,6 +8,7 @@ import WelcomeScreen from './WelcomeScreen.js';
 
 function App() {
   const [user, setUser] = useState(null);
+  const [isGuestMode, setIsGuestMode] = useState(() => JSON.parse(localStorage.getItem('guestMode')) || false);
   const auth = getAuth();
   const [darkMode, setDarkMode] = useState(() => {
     const savedMode = localStorage.getItem('darkMode');
@@ -26,48 +27,46 @@ function App() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+      if (!isGuestMode) {
+        setUser(currentUser);
+      }
     });
 
     return () => unsubscribe();
-  }, [auth]);
+  }, [auth, isGuestMode]);
 
   const toggleDarkMode = () => {
     setDarkMode(prevMode => !prevMode);
   };
-/*
- {user ? (
-        <div>
-          <h1>Welcome, {user.displayName}</h1>
-          <img src={user.photoURL} alt="profile" />
-          <SignIn />
-        </div>
-      ) : (
-        <SignIn />
-      )}
-      
-*/
+
+  const handleGuestMode = () => {
+    setIsGuestMode(true);
+    localStorage.setItem('guestMode', true);
+  };
+
   return (
     <div className="App">
-        <AuthProvider>
+      <AuthProvider>
         <button onClick={toggleDarkMode}>
-        {darkMode ? 'Light Mode' : 'Dark Mode'}
-      </button>
-      <MainComponent /> 
-    </AuthProvider>
-    
-  
-   
+          {darkMode ? 'Light Mode' : 'Dark Mode'}
+        </button>
+        <MainComponent isGuestMode={isGuestMode} onGuestMode={handleGuestMode} />
+      </AuthProvider>
     </div>
   );
-  
 }
-const MainComponent = () => {
+
+const MainComponent = ({ isGuestMode, onGuestMode }) => {
   const { currentUser } = useAuth();
 
-  return currentUser ?  <>
-  <SignIn/>
-  
-  <TodoList /></> : <WelcomeScreen />;
+  return currentUser || isGuestMode ? (
+    <>
+      <SignIn />
+      <TodoList />
+    </>
+  ) : (
+    <WelcomeScreen onGuestMode={onGuestMode} />
+  );
 };
+
 export default App;

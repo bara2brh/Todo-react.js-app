@@ -1,15 +1,11 @@
 /** 
 Fixes:
-* fix drag and drop errors
-* fix completed and incomplete after editing the todo
 
 **/ 
     /**
      * todo : 
      * make the code cleaner
      * a11y test
-     * add nodejs to it with google sign in
-     * store todo's to the database
      * create change language - (need to check after finishing)
      * show statistics for each section (last time finished, number of completed ,number of in progress)
      * styling whole project
@@ -48,10 +44,14 @@ const TodoList = () => {
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [language, setLanguage] = useState('');
     const getUid = localStorage.getItem('uid');
+    const [isGuestMode, setIsGuestMode] = useState(() => JSON.parse(localStorage.getItem('guestMode')) || false);
+
 
     useEffect(() => {
+        const guestMode = JSON.parse(localStorage.getItem('guestMode')) || false;
+        setIsGuestMode(guestMode);
         const fetchSectionsAndTodos = async () => {
-            if (currentUser && getUid) {
+            if (currentUser && getUid && !guestMode) {
                 const userDocRef = doc(db, 'users', getUid);
                 const sectionsSubcollectionRef = collection(userDocRef, 'sections');
                 const sectionsSnapshot = await getDocs(sectionsSubcollectionRef);
@@ -99,7 +99,10 @@ const TodoList = () => {
     };
 
     // Toggle functions
-    const togglePopup = () => setIsOpen(!isOpen);
+    const togglePopup = () => {
+        setIsEditingTodo(!isEditingTodo);
+        setIsOpen(!isOpen);
+    } 
     const toggleResurePopup = () => setResureIsOpen(!resureIsOpen);
     const togglePopupSectionEdit = () => setIsEditingSection(!isEditingSection);
     const handleToggleInput = () => setToggleInput(!toggleInput);
@@ -122,43 +125,43 @@ const TodoList = () => {
     };
 
     // Add, edit, delete section handlers
-    const handleAddSection = async () =>  {
-        if (!currentUser)
-            {
-                if (sections.length === 0) setSelectedSection(0);
-                if (sectionInput.trim() !== '') {
-                    const newSections = [...sections, { title: sectionInput, todos: [] }];
-                    setSections(newSections);
-                    setSectionInput('');
-                    localStorage.setItem('sections', JSON.stringify(newSections));
-                }        
+    const handleAddSection = async () => {
+        if (!currentUser && isGuestMode) {
+            // If the user is not logged in, add a new section locally
+            if (sections.length === 0) setSelectedSection(0);
+            if (sectionInput.trim() !== '') {
+                const newSections = [...sections, { title: sectionInput, todos: [] }];
+                setSections(newSections);
+                setSectionInput('');
+                localStorage.setItem('sections', JSON.stringify(newSections));
             }
-            else {
-                try {
-                    const userDocRef = doc(db, 'users', getUid);
-                    const sectionsSubcollectionRef = collection(userDocRef, 'sections');
-                    const sectionData = {
-                      title: sectionInput,
-                      todos:{},
-                    };
-                    const sectionDocRef = doc(sectionsSubcollectionRef); 
-                    await setDoc(sectionDocRef, sectionData);
-                    console.log('Section successfully added!');
-                    const sectionsSnapshot = await getDocs(sectionsSubcollectionRef)
-                    const sections = sectionsSnapshot.docs.map(doc => ({
+        } else {
+            // If the user is logged in, add a new section to Firestore
+            try {
+                const userDocRef = doc(db, 'users', getUid);
+                const sectionsSubcollectionRef = collection(userDocRef, 'sections');
+                const sectionData = {
+                    title: sectionInput,
+                    todos: [], // Ensure todos is initialized as an empty array
+                };
+    
+                // Add a new document with an auto-generated ID
+                await addDoc(sectionsSubcollectionRef, sectionData);
+    
+                console.log('Section successfully added!');
+    
+                // Fetch the updated sections from Firestore
+                const sectionsSnapshot = await getDocs(sectionsSubcollectionRef);
+                const sectionsData = sectionsSnapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
-                    }));
-                    setSections(sections);
-                    setSectionInput('');
-
-                  } catch (error) {
-                    console.error('Error adding section: ', error);
-                  }
-
-
+                }));
+                setSections(sectionsData);
+                setSectionInput('');
+            } catch (error) {
+                console.error('Error adding section: ', error);
             }
-       
+        }
     };
 
     const handleEditSection = (sectionIndex) => {
@@ -170,7 +173,7 @@ const TodoList = () => {
     const handleEditSectionSubmit = async (sectionIndex, text) => {
         const updatedSections = [...sections];
 
-        if (!currentUser) {
+        if (!currentUser && isGuestMode) {
             updatedSections[sectionIndex] = { ...updatedSections[sectionIndex], title: text };
             setSections(updatedSections);
             localStorage.setItem('sections', JSON.stringify(updatedSections));
@@ -199,7 +202,7 @@ const TodoList = () => {
         if (todoInput.trim() !== '' && timeInput.trim() !== '') {
             const updatedSections = [...sections];
     
-            if (!currentUser) {
+            if (!currentUser && isGuestMode) {
                 updatedSections[sectionIndex]?.todos.push({
                     text: todoInput,
                     time: convertTo12HourFormat(timeInput),
@@ -247,21 +250,39 @@ const TodoList = () => {
         seteditTodoIndex(todoIndex);
         const { text, time } = sections[sectionIndex]?.todos[todoIndex] || {};
         setEditTodoInput(text || '');
-        setIsEditingTodo(true);
         seteditTimeInput(convertTo24HourFormat(time || ''));
     };
 
-    const handleEditSubmit = (text, time, sectionIndex, todoIndex) => {
-        const updatedSections = [...sections];
-        updatedSections[sectionIndex].todos[todoIndex] = {
-            text,
-            time: convertTo12HourFormat(time),
-        };
-        setSections(updatedSections);
-        localStorage.setItem('sections', JSON.stringify(updatedSections));
-        setIsEditingTodo(false);
+    const handleEditSubmit = async(text, time, sectionIndex, todoIndex) => {
+        if (!currentUser && isGuestMode) {
+            const updatedSections = [...sections];
+            updatedSections[sectionIndex].todos[todoIndex] = {
+                text,
+                time: convertTo12HourFormat(time),
+            };
+            setSections(updatedSections);
+            localStorage.setItem('sections', JSON.stringify(updatedSections));
+         
 
+        }
+        else
+        {
+            const updatedSections = [...sections];
+            const sectionId = updatedSections[sectionIndex].id;
+            const todoId = updatedSections[sectionIndex].todos[todoIndex].id;
+            const todoDocRef = doc(db, 'users', getUid, 'sections', sectionId,'todos',todoId);
+            await updateDoc(todoDocRef, {
+                text: text,
+                time: convertTo12HourFormat(time),
+            });
+
+            updatedSections[sectionIndex].todos[todoIndex] = { ...updatedSections[sectionIndex].todos[todoIndex], text: text,time: convertTo12HourFormat(time),
+            };
+            setSections(updatedSections);
+        }
+        setIsEditingTodo(false);
         togglePopup();
+
     };
 
     const handleDeleteTodo = (sectionIndex, todoIndex) => {
@@ -273,7 +294,7 @@ const TodoList = () => {
 
     const handleDeleteConfirmation = async () => {
         if (deleteTarget.type === 'section') {
-         if (!currentUser)
+         if (!currentUser && isGuestMode)
          {
              const { sectionIndex } = deleteTarget;
             const updatedSections = [...sections];
@@ -285,14 +306,20 @@ const TodoList = () => {
             const { sectionIndex } = deleteTarget;
             const curSections = [...sections];
             const sectionId = curSections[sectionIndex].id;
-            const sectionDocRef = doc(db, 'users', getUid, 'sections', sectionId); 
+            const sectionDocRef = doc(db, 'users', getUid, 'sections', sectionId);
+            const todosSubcollectionRef = collection(sectionDocRef, 'todos');
+            const todosSnapshot = await getDocs(todosSubcollectionRef);
+
+            const deleteTodosPromises = todosSnapshot.docs.map(todoDoc => deleteDoc(todoDoc.ref));
+            await Promise.all(deleteTodosPromises);
             await deleteDoc(sectionDocRef);
-            const updatedSections = sections.filter(section => section.id !== sectionId);
-             setSections(updatedSections);
+
+            const updatedSections = curSections.filter(section => section.id !== sectionId);
+            setSections(updatedSections);
          }
         }
         if (deleteTarget.type === 'todo') {
-            if (!currentUser)
+            if (!currentUser && isGuestMode)
              {
                 const { sectionIndex, todoIndex } = deleteTarget;
                 const updatedSections = [...sections];
@@ -322,13 +349,26 @@ const TodoList = () => {
         setResureIsOpen(false);
     };
 
-    const toggleTodoCompleted = (sectionIndex, todoIndex) => {
-        const updatedSections = [...sections];
-        const statusCheck = updatedSections[sectionIndex]?.todos[todoIndex].status;
-        updatedSections[sectionIndex].todos[todoIndex].status = statusCheck === 'completed' ? 'incomplete' : 'completed';
-        setSections(updatedSections);
-        localStorage.setItem('sections', JSON.stringify(updatedSections));
-
+    const toggleTodoCompleted =async (sectionIndex, todoIndex) => {
+        if (!currentUser && isGuestMode) {
+            const updatedSections = [...sections];
+            const statusCheck = updatedSections[sectionIndex]?.todos[todoIndex].status;
+            updatedSections[sectionIndex].todos[todoIndex].status = statusCheck === 'completed' ? 'incomplete' : 'completed';
+            setSections(updatedSections);
+            localStorage.setItem('sections', JSON.stringify(updatedSections));
+        }
+        else{
+            const updatedSections = [...sections];
+            const statusCheck = updatedSections[sectionIndex]?.todos[todoIndex].status;
+            const sectionId = updatedSections[sectionIndex].id;
+            const todoId = updatedSections[sectionIndex].todos[todoIndex].id;
+            const todoDocRef = doc(db, 'users', getUid, 'sections', sectionId,'todos',todoId);
+            await updateDoc(todoDocRef, {
+                status: statusCheck === 'completed' ? 'incomplete' : 'completed',
+            });
+            updatedSections[sectionIndex].todos[todoIndex].status = statusCheck === 'completed' ? 'incomplete' : 'completed';
+            setSections(updatedSections);
+        }
     };
 
     const handleSectionClick = (sectionIndex) => {

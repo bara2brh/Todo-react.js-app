@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import SignIn from './components/SignIn';
-const WelcomeScreen= ()=> {
-    return <>
-    <SignIn/>
-    </>
 
-}
+const WelcomeScreen = ({ onGuestMode }) => {
+  return (
+    <>
+      <SignIn />
+      <button onClick={onGuestMode}>Guest Mode</button>
+    </>
+  );
+};
+
 export default WelcomeScreen;
