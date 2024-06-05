@@ -7,6 +7,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #987eff;
+  transition: 0.5s;
 
 }
 
@@ -25,8 +26,6 @@ code {
   padding: 0;
   margin-left: 10%;
   margin-right: 10%;
-  
-
 }
 
 .sections {
@@ -97,4 +96,110 @@ input{
 .dark-mode {
   background-color: #333;
   color: #fff;
+  transition: 0.5s;
+
 }
+
+.icon-button {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.icon-button i {
+  font-size: 20px;
+  margin: 4pt;
+  color: #c2c0c0;
+}
+
+.icon-button i:hover {
+  color: #a18aff;
+}
+
+.delete i:hover {
+  color: red;
+}
+.edit i:hover{
+  color: rgb(52, 212, 52);
+}
+
+/*
+dark mode switcher ............
+*/
+
+.dark-switch label {
+  width: 120px;
+  height: 50px;
+  position: relative;
+  display: block;
+  background: #ebebeb;
+  border-radius: 50px;
+  box-shadow: inset 0px 5px 15px rgba(0, 0, 0, 0.4), inset 0px -5px 15px rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+}
+
+.dark-switch label:after {
+  content: "";
+  width: 40px;
+  height: 40px;
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  background: linear-gradient(180deg, #ffcc89, #d8860b);
+  border-radius: 50%;
+  box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.2);
+  transition: 0.5s;
+}
+
+.dark-switch input {
+  width: 0;
+  height: 0;
+  visibility: hidden;
+}
+
+.dark-switch input:checked + label {
+  background: #242424;
+  transition: 0.5s;
+
+}
+
+.dark-switch input:checked + label:after {
+  left: calc(100% - 45px);
+  background: linear-gradient(180deg, #777, #3a3a3a);
+}
+
+.dark-switch label i {
+  position: absolute;
+  font-size: 20pt;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+}
+
+.dark-switch label i.sun {
+  left: 11px;
+  color: #fff;
+  transition: 0.3s;
+}
+
+.dark-switch label i.moon {
+  right: 15px;
+  color: #7e7e7e;
+  transition: 0.3s;
+}
+
+.dark-switch input:checked + label i.sun {
+  color: #7e7e7e;
+}
+
+.dark-switch input:checked + label i.moon {
+  color: #fff;
+}
+
+.dark-switch{
+  padding: 1%;
+}
+/*
+End of dark mode switcher ............
+*/

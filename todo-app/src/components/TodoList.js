@@ -418,8 +418,8 @@ const TodoList = () => {
                                         onClick={() => handleSectionClick(index)}
                                         className={selectedSection === index ? 'active' : ''}
                                     >
-                                        {section.title} <button onClick={() => handleEditSection(index)}>Edit</button>
-                                        <button onClick={() => handleDeleteSection(index)}>Delete</button>
+                                        {section.title} <button className='icon-button edit' onClick={() => handleEditSection(index)}> <i class="fas fa-pen"/></button>
+                                        <button className='icon-button delete' onClick={() => handleDeleteSection(index)}><i class="fa-solid fa-circle-minus"/></button>
                                     </li>
                                 ))}
                             </ul>

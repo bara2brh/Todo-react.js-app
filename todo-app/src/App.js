@@ -47,9 +47,14 @@ function App() {
   return (
     <div className="App">
       <AuthProvider>
-        <button onClick={toggleDarkMode}>
-          {darkMode ? 'Light Mode' : 'Dark Mode'}
-        </button>
+        <div class="dark-switch">
+        <input  defaultChecked={darkMode} onClick={toggleDarkMode} type="checkbox" id="darkmode-toggle"/>
+        <label for="darkmode-toggle">
+        <i class="fa-light fa-moon moon"></i>
+        <i class="fa-light fa-sun-bright sun"></i>
+         </label>
+        </div>
+      
         <MainComponent isGuestMode={isGuestMode} onGuestMode={handleGuestMode} />
       </AuthProvider>
     </div>
