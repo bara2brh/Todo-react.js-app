@@ -9,7 +9,7 @@ const Popup = ({ isOpen, togglePopup, children }) => {
           <div className="popup">
             <div className="popup-content">
               {children}
-              <button onClick={togglePopup}>Cancel</button>
+              <button className='btn' onClick={togglePopup}>Cancel</button>
             </div>
           </div>
         </div>

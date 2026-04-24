@@ -4,6 +4,7 @@ Fixes:
 **/ 
     /**
      * todo : 
+     * fix editing priority
      * make the code cleaner
      * a11y test
      * create change language - (need to check after finishing)
@@ -38,6 +39,7 @@ const TodoList = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [resureIsOpen, setResureIsOpen] = useState(false);
     const [editTodoInput, setEditTodoInput] = useState('');
+    const [editTodoPriority, setEditTodoPriority] = useState('');
     const [editTimeInput, seteditTimeInput] = useState('');
     const [editTodoIndex, seteditTodoIndex] = useState(0);
     const [editSectionIndex, seteditSectionIndex] = useState(0);
@@ -45,7 +47,31 @@ const TodoList = () => {
     const [language, setLanguage] = useState('');
     const getUid = localStorage.getItem('uid');
     const [isGuestMode, setIsGuestMode] = useState(() => JSON.parse(localStorage.getItem('guestMode')) || false);
-
+    const priorityStyle = (priority) => {
+        let backgroundColor;
+    
+        switch (priority) {
+          case 'Important':
+            backgroundColor = '#fe1d25';
+            break;
+          case 'high':
+            backgroundColor = '#fe1d25';
+            break;  
+          case 'medium':
+            backgroundColor = '#ffae31';
+            break;
+          case 'low':
+            backgroundColor = '#67c75c';
+            break;
+          default:
+            backgroundColor = 'gray';
+        };
+            return {
+                backgroundColor,
+                
+            };
+                    
+    };
 
     useEffect(() => {
         const guestMode = JSON.parse(localStorage.getItem('guestMode')) || false;
@@ -121,7 +147,8 @@ const TodoList = () => {
     };
 
     const handlePrioritySelection = (event) => {
-        setPriorityInput(event.target.value);
+       isEditingTodo ? setEditTodoPriority(event.target.value)
+       : setPriorityInput(event.target.value) ;
     };
 
     // Add, edit, delete section handlers
@@ -142,7 +169,7 @@ const TodoList = () => {
                 const sectionsSubcollectionRef = collection(userDocRef, 'sections');
                 const sectionData = {
                     title: sectionInput,
-                    todos: [], // Ensure todos is initialized as an empty array
+                    todos: [],
                 };
     
                 // Add a new document with an auto-generated ID
@@ -248,9 +275,21 @@ const TodoList = () => {
         togglePopup();
         seteditSectionIndex(sectionIndex);
         seteditTodoIndex(todoIndex);
-        const { text, time } = sections[sectionIndex]?.todos[todoIndex] || {};
+        let x = 'high';
+        const { text, time , priority } = sections[sectionIndex]?.todos[todoIndex] || {};
         setEditTodoInput(text || '');
         seteditTimeInput(convertTo24HourFormat(time || ''));
+        switch (priority) {
+            case 'important':
+                x = 'high';
+                break;
+            case '':
+
+            break;
+            default:
+                break;
+        }
+        setEditTodoPriority(priority);
     };
 
     const handleEditSubmit = async(text, time, sectionIndex, todoIndex) => {
@@ -259,6 +298,7 @@ const TodoList = () => {
             updatedSections[sectionIndex].todos[todoIndex] = {
                 text,
                 time: convertTo12HourFormat(time),
+                priority: editTodoPriority,
             };
             setSections(updatedSections);
             localStorage.setItem('sections', JSON.stringify(updatedSections));
@@ -274,9 +314,12 @@ const TodoList = () => {
             await updateDoc(todoDocRef, {
                 text: text,
                 time: convertTo12HourFormat(time),
+                priority: setEditTodoPriority,
+
             });
 
             updatedSections[sectionIndex].todos[todoIndex] = { ...updatedSections[sectionIndex].todos[todoIndex], text: text,time: convertTo12HourFormat(time),
+            priority: setEditTodoPriority,
             };
             setSections(updatedSections);
         }
@@ -418,8 +461,11 @@ const TodoList = () => {
                                         onClick={() => handleSectionClick(index)}
                                         className={selectedSection === index ? 'active' : ''}
                                     >
-                                        {section.title} <button className='icon-button edit' onClick={() => handleEditSection(index)}> <i class="fas fa-pen"/></button>
-                                        <button className='icon-button delete' onClick={() => handleDeleteSection(index)}><i class="fa-solid fa-circle-minus"/></button>
+                                        <p>{section.title} <button className='icon-button edit' onClick={() => handleEditSection(index)}> <i className="fas fa-pen"/></button>
+                                        <button className='icon-button delete' onClick={() => handleDeleteSection(index)}><i className="fa-solid fa-circle-minus"/></button>
+                                        </p>
+                                        <span class="tooltip-text" id="top">{section.title}</span>
+
                                     </li>
                                 ))}
                             </ul>
@@ -430,7 +476,7 @@ const TodoList = () => {
                                 {toggleInput ? (
                                     <div>
                                         <input type="text" value={sectionInput} onChange={handleSectionInputChange} placeholder={Strings.sectionAdd} />
-                                        <button onClick={handleAddSection}>{Strings.sectionAdd}</button>
+                                        <button className='btn' onClick={handleAddSection}>{Strings.sectionAdd}</button>
                                     </div>
                                 ) : (
                                     <h4>{Strings.sectionAdd}</h4>
@@ -454,7 +500,7 @@ const TodoList = () => {
                                     <option value={'low'}>{Strings.low}</option>
                                     </select>
                                   
-                                    <button onClick={() => handleAddTodo(selectedSection)}>Add</button>
+                                    <button className='btn' onClick={() => handleAddTodo(selectedSection)}>Add</button>
                                     <Droppable droppableId={`section-${selectedSection}`} direction="vertical">
                                         {(provided) => (
                                             <ul ref={provided.innerRef} {...provided.droppableProps}>
@@ -466,16 +512,17 @@ const TodoList = () => {
                                                                 {...provided.draggableProps}
                                                                 {...provided.dragHandleProps}
                                                             >
-                                                                {todo.text} - {todo.time} - {todo.status} - {todo.priority}
+                                                              
                                                                 <div onClick={() => toggleTodoCompleted(selectedSection, index)}>
+                                                                 <div  style={priorityStyle(todo.priority)} className='priorityCircle'> </div> {todo.text}  {todo.time} - {todo.status} 
                                                                     {todo.status === 'completed' ? (
                                                                         <i className="icon fa-regular fa-circle-check"></i>
                                                                     ) : (
                                                                         <i className="fa-regular fa-circle"></i>
                                                                     )}
                                                                 </div>
-                                                                <button onClick={() => handleDeleteTodo(selectedSection, index)}>Delete</button>
-                                                                <button onClick={() => handleEditTodo(selectedSection, index)}>Edit</button>
+                                                                <button className='btn' onClick={() => handleDeleteTodo(selectedSection, index)}>Delete</button>
+                                                                <button  className='btn' onClick={() => handleEditTodo(selectedSection, index)}>Edit</button>
                                                             </li>
                                                         )}
                                                     </Draggable>
@@ -498,7 +545,12 @@ const TodoList = () => {
                         onChange={handleTodoInputChange}
                     />
                     <input aria-label="Time" type="time" value={editTimeInput} onChange={handleTimeInputChange} />
-                    <button onClick={() => handleEditSubmit(editTodoInput, editTimeInput, editSectionIndex, editTodoIndex)}>Submit</button>
+                    <select name="priority" value={editTodoPriority}  onChange={handlePrioritySelection} id="priority">
+                                    <option value={'high'}>{Strings.high}</option>
+                                    <option value={'medium'}>{Strings.medium}</option>
+                                    <option value={'low'}>{Strings.low}</option>
+                                    </select>
+                    <button className='btn' onClick={() => handleEditSubmit(editTodoInput, editTimeInput, editSectionIndex, editTodoIndex)}>Submit</button>
                 </Popup>
                 <Popup isOpen={isEditingSection} togglePopup={togglePopupSectionEdit}>
                     <input
@@ -506,12 +558,14 @@ const TodoList = () => {
                         value={editSectionInput}
                         onChange={handleSectionInputChange}
                     />
-                    <button onClick={() => handleEditSectionSubmit(editSectionIndex, editSectionInput )}>Submit</button>
+                     
+
+                    <button className='btn' onClick={() => handleEditSectionSubmit(editSectionIndex, editSectionInput )}>Submit</button>
                 </Popup>
                 <Popup isOpen={resureIsOpen} togglePopup={toggleResurePopup}>
                     <h1>Are You Sure?</h1>
                     <h3>{deleteTarget?.type === "section" ? `This will delete the whole section! ` : `This will delete the todo and can't be undone`}</h3>
-                    <button onClick={handleDeleteConfirmation}>Submit</button>
+                    <button className='btn' onClick={handleDeleteConfirmation}>Submit</button>
                 </Popup>
             </>
         );

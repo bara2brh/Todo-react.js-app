@@ -47,11 +47,11 @@ function App() {
   return (
     <div className="App">
       <AuthProvider>
-        <div class="dark-switch">
+        <div className="dark-switch">
         <input  defaultChecked={darkMode} onClick={toggleDarkMode} type="checkbox" id="darkmode-toggle"/>
-        <label for="darkmode-toggle">
-        <i class="fa-light fa-moon moon"></i>
-        <i class="fa-light fa-sun-bright sun"></i>
+        <label htmlFor="darkmode-toggle">
+        <i className="fa-light fa-moon moon"></i>
+        <i className="fa-light fa-sun-bright sun"></i>
          </label>
         </div>
       

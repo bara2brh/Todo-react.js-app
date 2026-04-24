@@ -26,13 +26,15 @@ code {
   padding: 0;
   margin-left: 10%;
   margin-right: 10%;
+  
 }
 
 .sections {
   flex: 1;
   border-radius: 20px;
-
+  overflow: hidden;
   padding: 2%;
+
 }
 
 .sections h2 {
@@ -44,22 +46,27 @@ code {
   padding: 0;
 }
 
-.sections li {
+.sections li p {
   cursor: pointer;
   padding: 5px;
   border-radius: 5px;
   margin-bottom: 5px;
+  transition: 0.4s;
+  overflow: hidden;
+  max-width: 100%;
+  text-overflow: ellipsis;
 }
 
 .sections li.active {
   background-color: #f0f0f0;
+  transition: 0.4s;
 }
 
 .todos {
   border-radius: 20px;
   border-top-left-radius: 0px;
   border-bottom-left-radius: 0px;
-  flex: 2;
+  flex: 3;
   margin-left: 20px;
   padding: 2%;
   background-color: #a18aff;
@@ -72,10 +79,22 @@ code {
 .todos ul {
   list-style-type: none;
   padding: 0;
+  align-items: center;
+  text-align: center;
+  margin: auto;
 }
 
 .todos li {
   margin-bottom: 5px;
+  background-color: white;
+  align-items: center;
+  text-align: center;
+  width: 90%;
+  border-radius: 15pt;
+  margin-left: auto;
+  margin-right: auto;
+  margin: 5%;
+
 }
 
 .todos input {
@@ -122,6 +141,20 @@ input{
 }
 .edit i:hover{
   color: rgb(52, 212, 52);
+}
+
+.priorityCircle {
+  width: 3%;
+  height: 15pt;
+  border-radius: 100%;
+  border: solid 2px white;
+  color: white;
+  box-shadow:  0px 1px 10px rgba(0, 0, 0, 0.4);
+  display: inline-block;
+  text-align: center;
+  align-items: center;
+  font-weight: 500;
+
 }
 
 /*
@@ -203,3 +236,67 @@ dark mode switcher ............
 /*
 End of dark mode switcher ............
 */
+
+button.btn{
+  background-color:#987eff;
+  color: white;
+  border: white 2px solid;
+  padding: 7px;
+  border-radius: 10px;
+  font-size: 11pt;
+  font-weight: bold;
+  transition: 0.3s;
+  letter-spacing: 0.4pt;
+  box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 3px 10px 0 rgba(0,0,0,0.19);
+
+}
+button:hover.btn{
+  background-color:white;
+  color: #987eff;
+  border: #987eff 2px solid;
+  padding: 7px;
+  border-radius: 5px;
+  font-weight: bold;
+  letter-spacing: 0.9pt;
+  transition: 0.3s;
+  cursor: pointer;
+
+}
+
+/* Sections Tooltip */
+
+.tooltip-text {
+  visibility: hidden;
+  position: absolute; /* Change to fixed */
+  z-index: 2;
+  color: white;
+  font-size: 12px;
+  background-color: #192733;
+  border-radius: 10px;
+  padding: 10px 15px 10px 15px;
+  transform: translate(-50%,-250%); 
+  transition: visibility 0.5s, opacity 0.3s;
+  opacity: 0;
+}
+
+.tooltip-text::before {
+  content: "";
+  position: absolute;
+  transform: rotate(45deg);
+  background-color: #192733;
+  padding: 5px;
+  z-index: 1;
+}
+
+.sections li:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+
+
+#top::before {
+  top: 80%;
+  left: 50%;
+}
+/*End of tooltip styling */
